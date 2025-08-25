@@ -9,10 +9,4 @@
     "start": "node sendEmail.js"
   },
   "private": true
-}ls -l
-file package.json
-ls -l
-cd ~/Desktop
-
-
-
+}
