@@ -6,16 +6,15 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end(); // Handle preflight
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "OPTIONS") return res.status(200).end(); // Preflight
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { to, subject, status, trackingNumber } = req.body;
+    const { to, subject = "Package Status Updated", status, trackingNumber } = req.body;
+
+    if (!to || !status || !trackingNumber) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -25,7 +24,7 @@ export default async function handler(req, res) {
       },
     });
 
-    // Build email text with correct tracking link
+    // Build email content with proper tracking link
     const text = `Your package status is now: ${status}
 Track here: https://atlas-global-shippings.web.app/track.html?id=${trackingNumber}`;
 
