@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { to, subject, text } = req.body;
+    const { to, subject, status, trackingNumber } = req.body;
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -24,6 +24,10 @@ export default async function handler(req, res) {
         pass: process.env.GMAIL_PASS,
       },
     });
+
+    // Build email text with correct tracking link
+    const text = `Your package status is now: ${status}
+Track here: https://atlas-global-shippings.web.app/track.html?id=${trackingNumber}`;
 
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
