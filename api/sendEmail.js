@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
-  // CORS (desktop + mobile)
+  // ---------- CORS ----------
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -9,6 +9,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
+    // ---------- Extract request body ----------
     const {
       to,
       recipientName = "Customer",
@@ -23,7 +24,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // ---------- Language templates (18 languages) ----------
+    // ---------- Clean houseAddress ----------
+    const cleanHouseAddress = (houseAddress || "").trim() || "Not provided";
+
+    // ---------- Language templates ----------
     const messages = {
       en: (n, s, t, d, a) => `
 Dear ${n},
@@ -243,53 +247,34 @@ För fler frågor, kontakta Atlas Global Shipping-teamet.
 `,
     };
 
-    // ---------- Detect language from destination ----------
+    // ---------- Detect language ----------
     const detectLang = (dest) => {
       const d = (dest || "").toLowerCase();
-
-      // Spanish
       if (/(mexico|spain|argentina|colombia|chile|peru|venezuela|ecuador|bolivia|uruguay|paraguay|guatemala|costa rica|panama|honduras|el salvador|nicaragua|dominican|puerto rico)/.test(d)) return "es";
-      // Portuguese
       if (/(brazil|portugal|angola|mozambique|guinea-bissau|cabo verde|são tomé|sao tome|timor-leste)/.test(d)) return "pt";
-      // French
       if (/(france|belgium|belgique|luxembourg|luxemburg|switzerland|suisse|monaco|canada.*quebec|quebec|tunisia|morocco|algeria|senegal|ivory coast|côte d'ivoire|cote d'ivoire)/.test(d)) return "fr";
-      // German
       if (/(germany|austria|switzerland|liechtenstein)/.test(d)) return "de";
-      // Italian
       if (/(italy|san marino|vatican)/.test(d)) return "it";
-      // Thai
       if (/thailand|bangkok|phuket/.test(d)) return "th";
-      // Korean
       if (/korea|seoul/.test(d)) return "ko";
-      // Japanese
       if (/japan|tokyo|osaka|kyoto/.test(d)) return "ja";
-      // Chinese
       if (/china|hong kong|hongkong|taiwan|macau|shanghai|beijing/.test(d)) return "zh";
-      // Vietnamese
       if (/vietnam|hanoi|ho chi minh|saigon/.test(d)) return "vi";
-      // Malay
       if (/malaysia|kuala lumpur|sabah|sarawak/.test(d)) return "ms";
-      // Filipino/Tagalog
       if (/philippine|philippines|manila|cebu|davao/.test(d)) return "tl";
-      // Indonesian
       if (/indonesia|jakarta|bali|surabaya|bandung/.test(d)) return "id";
-      // Hindi/India
       if (/india|delhi|mumbai|bangalore|bengaluru|kolkata|chennai|hyderabad/.test(d)) return "hi";
-      // Dutch
       if (/netherlands|holland|amsterdam|rotterdam|the hague|den haag|utrecht/.test(d)) return "nl";
-      // Polish
       if (/poland|warsaw|warszawa|krakow|kraków|wroclaw|wrocław/.test(d)) return "pl";
-      // Swedish
       if (/sweden|stockholm|gothenburg|göteborg|malmö/.test(d)) return "sv";
-
-      return "en"; // default
+      return "en";
     };
 
     const lang = detectLang(destination);
     const build = messages[lang] || messages.en;
-    const text = build(recipientName, status, trackingNumber, destination, houseAddress);
+    const text = build(recipientName, status, trackingNumber, destination, cleanHouseAddress);
 
-    // ---------- Mail transport ----------
+    // ---------- Nodemailer ----------
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS },
@@ -303,6 +288,7 @@ För fler frågor, kontakta Atlas Global Shipping-teamet.
     });
 
     return res.status(200).json({ message: "Email sent successfully", langUsed: lang });
+
   } catch (error) {
     console.error("Email error:", error);
     return res.status(500).json({ error: "Failed to send email" });
